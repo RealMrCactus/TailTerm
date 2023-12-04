@@ -3,6 +3,9 @@ A Linux Terminal emulator written in rust.
 
 # Goals
 - Sixel support
+- Scrolling
+- Custom Fonts
+- Ligatures
 
 # Resources
 
