@@ -13,4 +13,5 @@ TailTerm is not just another terminal emulator; it's a step forward in command-l
 # Resources
 
 [Terminal Anatomy](https://poor.dev/blog/terminal-anatomy/)
+
 [Basics of a TE](https://github.com/codecrafters-io/build-your-own-x/issues/85#issue-324138609)
