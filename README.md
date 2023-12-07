@@ -1,7 +1,5 @@
 ![TailTerm Banner](https://github.com/RealMrCactus/TailTerm/blob/main/TailTermBanner.png?raw=true)
 
-[![Discord](https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b52aa9e99b832574a53_full_logo_blurple_RGB.png)](https://discord.com/invite/C9vbcefvUA)
-
 # TailTerm - The Rust-Built Terminal Emulator
 
 **TailTerm** is an innovative terminal emulator designed to integrate seamlessly with both **X11** and **Wayland** display servers. Developed by **RealMrCactus**, TailTerm is crafted using the robust and efficient **Rust** programming language, ensuring top-notch performance and reliability.
@@ -19,3 +17,5 @@ TailTerm is not just another terminal emulator; it's a step forward in command-l
 [Terminal Anatomy](https://poor.dev/blog/terminal-anatomy/)
 
 [Basics of a TE](https://github.com/codecrafters-io/build-your-own-x/issues/85#issue-324138609)
+
+[![Discord](https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b52aa9e99b832574a53_full_logo_blurple_RGB.png)](https://discord.com/invite/C9vbcefvUA)
