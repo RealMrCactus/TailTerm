@@ -1,4 +1,4 @@
-![TailTerm Banner](https://github.com/RealMrCactus/TailTerm/blob/main/TailTermBanner.png?raw=true)
+![TailTerm Banner](https://github.com/RealMrCactus/TailTerm/blob/main/web/assets/TailTermBanner.png?raw=true)
 
 # TailTerm - The Rust-Built Terminal Emulator
 
