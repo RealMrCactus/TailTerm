@@ -13,7 +13,7 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc:
         println!("Thread started. Master FD: {:?}", master_fd);
 
         // SAFETY: We're assuming here that we're the only ones who have access to this FD.
-        let master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+        let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
         println!("Thread: File descriptor is now wrapped in std::fs::File");
 
         let mut buffer = [0; 1024];
