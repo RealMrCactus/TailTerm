@@ -1,14 +1,13 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
-use glib::source;
-use glib::ControlFlow::Continue;
-use nix::pty::{forkpty, openpty, Winsize};
-use std::os::unix::io::{AsRawFd, RawFd};
-use std::{io::Read, thread};
-use std::os::unix::io::FromRawFd;
+use gtk::{Application, ApplicationWindow, TextView, TextBuffer};
+use glib::source::{self, Continue};
+use nix::pty::{openpty};
+use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use std::{io::Read, thread, sync::mpsc};
 
-fn setup_pty_output_to_textview(master_fd: RawFd, text_view: gtk::TextView) {
+fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc::Sender<String>) {
     thread::spawn(move || {
+        // SAFETY: We're assuming here that we're the only ones who have access to this FD.
         let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
         let mut buffer = [0; 1024];
 
@@ -17,14 +16,7 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: gtk::TextView) {
                 Ok(size) => {
                     if size > 0 {
                         let output = String::from_utf8_lossy(&buffer[..size]).to_string();
-
-                        // Update the TextView in the main GTK thread
-                        glib::idle_add_local(move || {
-                            // Use of get_buffer method after ensuring the TextView's trait is in scope
-                            let buffer = text_view.get_buffer().expect("Cannot get text buffer");
-                            buffer.insert(&mut buffer.get_end_iter(), &output);
-                            gtk::glib::ControlFlow::Continue(false)
-                        });
+                        tx.send(output).expect("Failed to send output to main thread");
                     }
                 }
                 Err(e) => {
@@ -38,9 +30,10 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: gtk::TextView) {
 
 fn main() {
     // Initialize GTK application
-    let application = Application::new(Some("com.realmrcactus.tailterm"), Default::default());
+    let application = Application::new(Some("com.example.tailterm"), Default::default());
+    let (tx, rx) = mpsc::channel();
 
-    application.connect_activate(|app| {
+    application.connect_activate(move |app| {
         let window = ApplicationWindow::new(app);
         window.set_title("TailTerm");
         window.set_default_size(850, 450);
@@ -54,8 +47,17 @@ fn main() {
 
         // Open PTY and setup output to textview
         if let Ok(pty) = openpty(None, None) {
-            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view);
+            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view.clone(), tx);
         }
+
+        source::idle_add_local(move || {
+            if let Ok(output) = rx.try_recv() {
+                if let Some(buffer) = text_view.get_buffer() {
+                    buffer.insert(&mut buffer.get_end_iter(), &output);
+                }
+            }
+            Continue(true) // We return `true` to keep the callback alive.
+        });
     });
 
     application.run();
