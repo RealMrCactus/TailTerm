@@ -3,17 +3,17 @@ use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
 use glib::source;
 use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
-use std::{io::Read, thread, sync::mpsc, io::Write};
+use std::{io::Read, thread, sync::mpsc, };
 use std::sync::{Arc, Mutex};
 
-fn setup_pty_output_to_textview(master_fd: Arc<Mutex<RawFd>>, text_view: TextView, tx: mpsc::Sender<String>) {
+fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc::Sender<String>) {
     println!("setup_pty_output_to_textview: Setting up PTY output thread...");
 
     thread::spawn(move || {
-        println!("Thread started. Master FD: {:?}", *master_fd.lock().unwrap());
+        println!("Thread started. Master FD: {:?}", master_fd);
 
         // SAFETY: We're assuming here that we're the only ones who have access to this FD.
-        let mut master_file = unsafe { std::fs::File::from_raw_fd(*master_fd.lock().unwrap()) };
+        let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
         println!("Thread: File descriptor is now wrapped in std::fs::File");
 
         let mut buffer = [0; 1024];
