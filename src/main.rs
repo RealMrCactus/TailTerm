@@ -41,16 +41,17 @@ impl TerminalWindow {
 fn spawn_shell() -> nix::Result<()> {
     let OpenptyResult { master, slave } = openpty(None, None)?;
     let master_fd = master.as_raw_fd();
-
-    unsafe {
-        if grantpt(master_fd) != 0 {
-            return Err(nix::Error::last());
-        }
-
-        if unlockpt(master_fd) != 0 {
-            return Err(nix::Error::last());
-        }
+    // Assuming `master_fd` is a variable of type `PtyMaster`
+    match grantpt(&master_fd) {
+        Ok(()) => println!("grantpt succeeded"),
+        Err(err) => eprintln!("grantpt failed: {}", err),
     }
+
+    match unlockpt(&master_fd) {
+        Ok(()) => println!("unlockpt succeeded"),
+        Err(err) => eprintln!("unlockpt failed: {}", err),
+    }
+
     
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
