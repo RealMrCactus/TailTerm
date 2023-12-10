@@ -57,7 +57,7 @@ fn main() {
                     buffer.insert(&mut buffer.get_end_iter(), &output);
                 }
             }
-            glib::ControlFlow::Continue(true) // Correct usage as a value, not a function call.
+            true // Return true to keep the callback alive.
         });
     });
 
