@@ -66,7 +66,7 @@ fn main() {
             if let Ok(output) = rx_clone.lock().expect("Failed to lock rx").try_recv() {
                 text_buffer.insert(&mut text_buffer.end_iter(), &output);
             }
-            glib::Continue(true) // Return Continue directly if that's what the API expects
+            true.into() // Return Continue directly if that's what the API expects
         });
     });
 
