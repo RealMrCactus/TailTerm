@@ -37,26 +37,26 @@ impl TerminalWindow {
 }
 
 fn spawn_shell() -> nix::Result<()> {
-    let OpenptyResult { master: pty_master, slave: _ } = openpty(None, None)?;
-    grantpt(&pty_master)?;
-    unlockpt(&pty_master)?;
-
+    let OpenptyResult { master, slave } = openpty(None, None)?;
+    grantpt(&master)?;
+    unlockpt(&master)?;
+    
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
             // Parent process logic here
         }
         ForkResult::Child => {
             setsid()?;
-            let slave_fd = pty_master.slave.as_raw_fd();
-
+            let slave_fd = slave.as_raw_fd();
+    
             // Attach the slave end of the PTY to the standard streams
             dup2(slave_fd, std::io::stdin().as_raw_fd())?;
             dup2(slave_fd, std::io::stdout().as_raw_fd())?;
             dup2(slave_fd, std::io::stderr().as_raw_fd())?;
-
+    
             // Now close the original slave_fd
             close(slave_fd)?;
-
+    
             // Prepare command and arguments
             let shell = CString::new("/bin/sh").unwrap();
             let args = [CStr::from_bytes_with_nul(b"/bin/sh\0").unwrap()];
