@@ -48,12 +48,9 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc:
 
 
 fn main() {
-    // Initialize GTK application
     let application = Application::new(Some("com.example.tailterm"), Default::default());
-    let (tx, rx) = mpsc::channel();
-    let rx = Arc::new(Mutex::new(rx)); // Wrap the receiver in an Arc<Mutex<_>>
 
-    application.connect_activate(move |app| {
+    application.connect_activate(|app| {
         let window = ApplicationWindow::new(app);
         window.set_title("TailTerm");
         window.set_default_size(850, 450);
@@ -64,33 +61,41 @@ fn main() {
 
         window.add(&text_view);
         window.show_all();
-        
-        let tx_clone = tx.clone(); // Clone the sender
 
-        println!("Attempting to open PTY...");
-        let pty_result = openpty(None, None);
-        if let Ok(pty) = pty_result {
-            println!("PTY opened successfully. Master FD: {:?}", pty.master);
-            println!("Slave device path: /dev/pts/{}", pty.slave.as_raw_fd());
+        // Open PTY and setup output to textview
+        if let Ok(pty) = openpty(None, None) {
+            let master_fd = pty.master.into_raw_fd();
+            let master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
 
-            // Here you can write something to the slave to test
-            let mut slave_file = unsafe { std::fs::File::from_raw_fd(pty.slave.as_raw_fd()) };
-            writeln!(slave_file, "Hello from the slave end!").unwrap();
+            // Create an Arc and Mutex to share the master file between threads
+            let master_file = Arc::new(Mutex::new(master_file));
 
-            // Setup the PTY output to be displayed in the TextView
-            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view.clone(), tx_clone);
-
-            let rx_clone = Arc::clone(&rx); // Clone the Arc<Mutex<Receiver<_>>>
-            let text_buffer = text_view.buffer().expect("Failed to get text buffer");
-
-            source::idle_add_local(move || {
-                if let Ok(output) = rx_clone.lock().expect("Failed to lock rx").try_recv() {
-                    text_buffer.insert(&mut text_buffer.end_iter(), &output);
+            // Clone the Arc to share with the thread
+            let thread_master_file = Arc::clone(&master_file);
+            thread::spawn(move || {
+                let mut local_master_file = thread_master_file.lock().unwrap();
+                let mut buffer = [0; 1024];
+                loop {
+                    match local_master_file.read(&mut buffer) {
+                        Ok(size) if size > 0 => {
+                            let output = String::from_utf8_lossy(&buffer[..size]).to_string();
+                            println!("Read from PTY: {}", output);
+                        }
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!("Error reading from PTY: {}", e);
+                            break;
+                        }
+                    }
                 }
-                true.into()
             });
+
+            // Example of writing to the PTY master end in the main thread
+            if let Ok(mut master_file) = master_file.lock() {
+                writeln!(master_file, "Hello from the main thread!").unwrap();
+            }
         } else {
-            eprintln!("Failed to open PTY: {:?}", pty_result.err());
+            eprintln!("Failed to open PTY");
         }
     });
 
