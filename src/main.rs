@@ -39,12 +39,11 @@ impl TerminalWindow {
 }
 
 fn spawn_shell() -> nix::Result<()> {
-    let OpenptyResult { master, slave } = openpty(None, None)?;
-    let master_fd = master.as_raw_fd();
-
-    // Use nix's grantpt and unlockpt functions
-    grantpt(&master_fd)?;
-    unlockpt(&master_fd)?;
+    let openpty_result = openpty(None, None)?;
+    
+    // The grantpt and unlockpt functions expect a reference to the PtyMaster
+    grantpt(&openpty_result.master)?;
+    unlockpt(&openpty_result.master)?;
 
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
@@ -52,7 +51,7 @@ fn spawn_shell() -> nix::Result<()> {
         }
         ForkResult::Child => {
             setsid()?;
-            let slave_fd = slave.as_raw_fd();
+            let slave_fd = openpty_result.slave.into_raw_fd();
 
             // Attach the slave end of the PTY to the standard streams
             dup2(slave_fd, std::io::stdin().as_raw_fd())?;
