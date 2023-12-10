@@ -13,20 +13,19 @@ use std::io::Read;
 use std::io::Write;
 use std::thread;
 use std::fs::File;
-
+use std::sync::{Arc, Mutex};
 
 #[derive(QObject, Default)]
 struct TerminalWindow {
     base: qt_base_class!(trait QObject),
-    // You might need a property here to hold the terminal's text
     terminal_text: qt_property!(QString; NOTIFY terminal_text_changed),
     terminal_text_changed: qt_signal!(),
 }
 
 impl TerminalWindow {
     fn show(&self) {
-        let mut engine = QmlEngine::new(); // Declare `engine` as mutable
-        let qml_data = QByteArray::from_slice(r#"
+        let mut engine = QmlEngine::new();
+        let qml_data = QByteArray::from(r#"
             import QtQuick 2.0
             import QtQuick.Controls 2.15
     
@@ -35,41 +34,36 @@ impl TerminalWindow {
                 width: 640
                 height: 480
                 title: qsTr("TailTerm")
+            }
         "#.as_bytes());
         engine.load_data(qml_data);
     }
 
     fn write_to_terminal(&mut self, data: &[u8]) {
-        // Convert the data to a QString
-        let qstring = QString::from_std_str(std::str::from_utf8(data).unwrap_or(""));
-        
-        // Append the data to the terminal's text
-        self.terminal_text.append_q_string(&qstring);
-        
-        // Emit the terminal_text_changed signal
+        let qstring = QString::from_utf8(data.to_vec());
+        self.terminal_text.append(&qstring);
         self.terminal_text_changed();
     }
 }
 
-fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
+fn spawn_shell(terminal_window: Arc<Mutex<TerminalWindow>>) -> nix::Result<()> {
     let OpenptyResult { master, slave } = openpty(None, None)?;
-
-    // Convert the OwnedFd into a File
     let master_file = unsafe { File::from_raw_fd(master.into_raw_fd()) };
 
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
-            // Spawn a new thread to handle the I/O
             thread::spawn(move || {
                 let mut buffer = [0; 1024];
                 loop {
                     match master_file.read(&mut buffer) {
                         Ok(n) => {
-                            // Write the data to the terminal window
-                            terminal_window.write_to_terminal(&buffer[..n]);
+                            if let Ok(mut tw) = terminal_window.lock() {
+                                tw.write_to_terminal(&buffer[..n]);
+                            }
                         }
                         Err(e) => {
                             eprintln!("Error reading from master PTY: {}", e);
+                            break;
                         }
                     }
                 }
@@ -78,20 +72,12 @@ fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
         ForkResult::Child => {
             setsid()?;
             let slave_fd = slave.into_raw_fd();
-
-            // Attach the slave end of the PTY to the standard streams
             dup2(slave_fd, std::io::stdin().as_raw_fd())?;
             dup2(slave_fd, std::io::stdout().as_raw_fd())?;
             dup2(slave_fd, std::io::stderr().as_raw_fd())?;
-
-            // Now close the original slave_fd
             close(slave_fd)?;
-
-            // Prepare command and arguments
             let shell = CString::new("/bin/sh").unwrap();
             let args = [CStr::from_bytes_with_nul(b"/bin/sh\0").unwrap()];
-            
-            // Execute the shell
             execvp(&shell, &args)?;
         }
     }
@@ -100,13 +86,13 @@ fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
 }
 
 fn main() {
-    let terminal_window = TerminalWindow::default();
+    let terminal_window = Arc::new(Mutex::new(TerminalWindow::default()));
 
-    match spawn_shell(terminal_window) {
+    match spawn_shell(terminal_window.clone()) {
         Ok(_) => {
-            // Note: In a real application, you'll need to find a way to manage 
-            //       both the Qt event loop and the PTY I/O simultaneously.
-            terminal_window.show();
+            // Note: In a real application, you'll need to manage both the Qt event loop and the PTY I/O.
+            // Qt's event loop can be started by calling `exec` on `QCoreApplication` or `QApplication`.
+            terminal_window.lock().unwrap().show();
         }
         Err(e) => {
             eprintln!("Error spawning shell: {}", e);
