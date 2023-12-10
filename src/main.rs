@@ -57,7 +57,7 @@ fn main() {
         }
 
         {
-            let rx1 = rx.clone(); // This shadows the outer rx, effectively "moving" it into this scope.
+            let rx1 = rx; // This shadows the outer rx, effectively "moving" it into this scope.
             source::idle_add_local(move || {
                 if let Ok(output) = rx1.try_recv() {
                     if let Some(buffer) = text_view.buffer() {
