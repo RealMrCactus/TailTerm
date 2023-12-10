@@ -8,6 +8,7 @@ use std::os::unix::io::{RawFd, AsRawFd};
 use libc::{grantpt as other_grantpt, unlockpt as other_unlockpt};
 use std::os::fd::IntoRawFd;
 use std::os::fd::RawFd;
+use std::os::fd::FromRawFd;
 use std::thread;
 use std::fs::File;
 
@@ -23,7 +24,7 @@ struct TerminalWindow {
 impl TerminalWindow {
     fn show(&self) {
         let mut engine = QmlEngine::new(); // Declare `engine` as mutable
-        engine.load_data(r#"
+        let qml_data = QByteArray::from_slice(r#"
             import QtQuick 2.0
             import QtQuick.Controls 2.15
     
@@ -32,7 +33,8 @@ impl TerminalWindow {
                 width: 640
                 height: 480
                 title: qsTr("TailTerm")
-        "#);
+        "#.as_bytes());
+        engine.load_data(qml_data);
     }
 
     fn write_to_terminal(&mut self, data: &[u8]) {
