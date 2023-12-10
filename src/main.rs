@@ -3,13 +3,12 @@ use gtk::{Application, ApplicationWindow, TextView};
 
 fn main() {
     // Initialize GTK application
-    let application = Application::new(Some("com.example.myapp"), Default::default())
-        .expect("Initialization failed...");
+    let application = Application::new(Some("com.example.myapp"), Default::default());
 
     application.connect_activate(|app| {
         // Create a new window
         let window = ApplicationWindow::new(app);
-        window.set_title("TailTerm");
+        window.set_title("Terminal-like Text Box");
         window.set_default_size(350, 70);
 
         // Create a text view (a multi-line text box)
