@@ -1,7 +1,10 @@
 use qmetaobject::*;
-use nix::pty::{openpty, Winsize};
-use nix::unistd::{fork, ForkResult, setsid, dup2, execvp};
-
+use nix::fcntl::OFlag;
+use nix::pty::{openpty, grantpt, unlockpt, Winsize};
+use nix::sys::termios;
+use nix::unistd::{fork, ForkResult, setsid, dup2, execvp, close};
+use std::ffi::{CString, CStr};
+use std::os::unix::io::{RawFd, AsRawFd};
 #[derive(QObject, Default)]
 struct TerminalWindow {
     base: qt_base_class!(trait QObject),
@@ -33,26 +36,37 @@ impl TerminalWindow {
     
 }
 
-fn spawn_shell() {
-    let pty_master = openpty(None, None).expect("Failed to open PTY");
+fn spawn_shell() -> nix::Result<()> {
+    let pty_master = openpty(None, None)?;
+    grantpt(&pty_master.slave)?;
+    unlockpt(&pty_master.slave)?;
 
-    match unsafe { fork() } {
-        Ok(ForkResult::Parent { .. }) => {
-            // Parent process: this will interact with the PTY master
-            // TODO: Read from and write to PTY master
-        },
-        Ok(ForkResult::Child) => {
-            setsid().expect("setsid failed");
-            let pty_slave = pty_master.slave.expect("No PTY slave available");
+    match unsafe { fork()? } {
+        ForkResult::Parent { .. } => {
+            // Parent process logic here
+        }
+        ForkResult::Child => {
+            setsid()?;
+            let slave_fd = pty_master.slave.as_raw_fd();
 
-            dup2(pty_slave.as_raw_fd(), 0).unwrap();
-            dup2(pty_slave.as_raw_fd(), 1).unwrap();
-            dup2(pty_slave.as_raw_fd(), 2).unwrap();
+            // Attach the slave end of the PTY to the standard streams
+            dup2(slave_fd, std::io::stdin().as_raw_fd())?;
+            dup2(slave_fd, std::io::stdout().as_raw_fd())?;
+            dup2(slave_fd, std::io::stderr().as_raw_fd())?;
 
-            execvp("sh", &["sh"]).expect("Failed to execute shell");
-        },
-        Err(_) => println!("Fork failed"),
+            // Now close the original slave_fd
+            close(slave_fd)?;
+
+            // Prepare command and arguments
+            let shell = CString::new("/bin/sh").unwrap();
+            let args = [CStr::from_bytes_with_nul(b"/bin/sh\0").unwrap()];
+            
+            // Execute the shell
+            execvp(&shell, &args)?;
+        }
     }
+
+    Ok(())
 }
 
 fn main() {
