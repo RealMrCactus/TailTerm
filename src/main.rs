@@ -41,10 +41,6 @@ impl TerminalWindow {
 
 fn spawn_shell() -> nix::Result<()> {
     let openpty_result = openpty(None, None)?;
-    
-    // The grantpt and unlockpt functions expect a reference to the PtyMaster
-    grantpt(&openpty_result.master)?;
-    unlockpt(&openpty_result.master)?;
 
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
