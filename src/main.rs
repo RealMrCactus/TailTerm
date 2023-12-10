@@ -1,5 +1,6 @@
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
+use std::ops::ControlFlow::Continue;
 use nix::pty::{forkpty, openpty, Winsize};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::{io::Read, thread};
