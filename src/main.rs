@@ -91,8 +91,15 @@ fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
 fn main() {
     let terminal_window = TerminalWindow::default();
 
-    // Note: In a real application, you'll need to find a way to manage 
-    //       both the Qt event loop and the PTY I/O simultaneously.
-    spawn_shell();
-    terminal_window.show();
+    match spawn_shell(terminal_window) {
+        Ok(_) => {
+            // Note: In a real application, you'll need to find a way to manage 
+            //       both the Qt event loop and the PTY I/O simultaneously.
+            terminal_window.show();
+        }
+        Err(e) => {
+            eprintln!("Error spawning shell: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
