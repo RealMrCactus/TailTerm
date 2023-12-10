@@ -7,7 +7,7 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use std::{io::Read, thread};
 use std::os::unix::io::FromRawFd;
 
-fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView) {
+fn setup_pty_output_to_textview(master_fd: RawFd, text_view: gtk::TextView) {
     thread::spawn(move || {
         let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
         let mut buffer = [0; 1024];
@@ -16,20 +16,14 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView) {
             match master_file.read(&mut buffer) {
                 Ok(size) => {
                     if size > 0 {
-                        let output = String::from_utf8_lossy(&buffer[..size]);
+                        let output = String::from_utf8_lossy(&buffer[..size]).to_string();
 
                         // Update the TextView in the main GTK thread
                         glib::idle_add_local(move || {
-                            if let Some(buffer) = text_view.get_buffer() {
-                                buffer.insert(&mut buffer.get_end_iter(), &output);
-                            }
-                            glib::idle_add_local(move || {
-                                if let Some(buffer) = text_view.get_buffer() {
-                                    buffer.insert(&mut buffer.get_end_iter(), &output);
-                                }
-                                Continue(false)
-                            });
-                            
+                            // Use of get_buffer method after ensuring the TextView's trait is in scope
+                            let buffer = text_view.get_buffer().expect("Cannot get text buffer");
+                            buffer.insert(&mut buffer.get_end_iter(), &output);
+                            Continue(false)
                         });
                     }
                 }
