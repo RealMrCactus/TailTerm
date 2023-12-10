@@ -56,14 +56,13 @@ fn main() {
             eprintln!("Failed to open PTY");
         }
 
-        let rx = &rx; // Move rx into the closure
         source::idle_add_local(move || {
-            if let Ok(output) = rx.try_recv() {
+            if let Ok(output) = rx.try_recv() { // use rx directly here
                 if let Some(buffer) = text_view.buffer() {
                     buffer.insert(&mut buffer.end_iter(), &output);
                 }
             }
-            true.into()
+            glib::ControlFlow::Continue(true)
         });
 
         std::mem::drop(rx);
