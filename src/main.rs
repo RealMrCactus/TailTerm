@@ -5,6 +5,8 @@ use nix::sys::termios;
 use nix::unistd::{fork, ForkResult, setsid, dup2, execvp, close};
 use std::ffi::{CString, CStr};
 use std::os::unix::io::{RawFd, AsRawFd};
+use libc::{grantpt, unlockpt};
+
 #[derive(QObject, Default)]
 struct TerminalWindow {
     base: qt_base_class!(trait QObject),
@@ -38,8 +40,17 @@ impl TerminalWindow {
 
 fn spawn_shell() -> nix::Result<()> {
     let OpenptyResult { master, slave } = openpty(None, None)?;
-    grantpt(&master)?;
-    unlockpt(&master)?;
+    let master_fd = master.as_raw_fd();
+
+    unsafe {
+        if grantpt(master_fd) != 0 {
+            return Err(nix::Error::last());
+        }
+
+        if unlockpt(master_fd) != 0 {
+            return Err(nix::Error::last());
+        }
+    }
     
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
