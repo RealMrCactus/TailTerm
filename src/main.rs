@@ -6,6 +6,7 @@ use nix::unistd::{fork, ForkResult, setsid, dup2, execvp, close};
 use std::ffi::{CString, CStr};
 use std::os::unix::io::{RawFd, AsRawFd};
 use libc::{grantpt, unlockpt};
+use std::os::fd::IntoRawFd;
 
 #[derive(QObject, Default)]
 struct TerminalWindow {
