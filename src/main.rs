@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc::Sender<String>) {
     thread::spawn(move || {
         // SAFETY: We're assuming here that we're the only ones who have access to this FD.
-        let master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+        let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
         println!("Setup PTY: File descriptor is {:?}", master_file);
 
         let mut buffer = [0; 1024];
