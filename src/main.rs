@@ -4,14 +4,12 @@ extern crate vte;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow};
 use vte::Terminal;
-use gtk::InputPurpose::Terminal;
+use gio::prelude::*;
+
 
 fn main() {
     // Initialize GTK application
-    let application = Application::new(
-        Some("com.example.gtk_vte_terminal"),
-        Default::default(),
-    ).expect("Initialization failed...");
+    let application = Application::new(Some("com.realmrcactus.tailterm"), Default::default());
 
     application.connect_activate(|app| {
         // Create a window
