@@ -9,6 +9,8 @@ use libc::{grantpt as other_grantpt, unlockpt as other_unlockpt};
 use std::os::fd::IntoRawFd;
 use std::os::fd::RawFd;
 use std::os::fd::FromRawFd;
+use std::io::Read;
+use std::io::Write;
 use std::thread;
 use std::fs::File;
 
