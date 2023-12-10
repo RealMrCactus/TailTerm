@@ -61,21 +61,21 @@ fn main() {
         let tx_clone = tx.clone(); // Clone the sender
 
         let pty_result = openpty(None, None);
-        if let Ok(pty) = pty_result {
-            println!("PTY opened successfully. Master FD: {:?}", pty.master);
-            
-            // This clone is necessary to keep the FD open in the reading thread
-            let master_fd_clone = pty.master.try_clone().expect("Failed to clone PTY master FD");
-            setup_pty_output_to_textview(master_fd_clone.as_raw_fd(), text_view.clone(), tx_clone);
+    if let Ok(pty) = pty_result {
+        println!("PTY opened successfully. Master FD: {:?}", pty.master);
+        
+        // This clone is necessary to keep the FD open in the reading thread
+        let master_fd_clone = pty.master.try_clone().expect("Failed to clone PTY master FD");
+        setup_pty_output_to_textview(master_fd_clone.as_raw_fd(), text_view.clone(), tx_clone);
 
-            // You might need to handle the slave end here as well
-            // For example, you might need to set up the slave end to act as a terminal
-            // This would typically involve setting terminal attributes and possibly
-            // spawning a shell or another process that uses the slave end as its terminal
+        // You might need to handle the slave end here as well
+        // For example, you might need to set up the slave end to act as a terminal
+        // This would typically involve setting terminal attributes and possibly
+        // spawning a shell or another process that uses the slave end as its terminal
 
-        } else {
-            eprintln!("Failed to open PTY: {:?}", pty_result.err());
-        }
+    } else {
+        eprintln!("Failed to open PTY: {:?}", pty_result.err());
+    }
 
         let rx_clone = Arc::clone(&rx); // Clone the Arc<Mutex<Receiver<_>>>
 
