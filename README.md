@@ -23,3 +23,4 @@ TailTerm is not just another terminal emulator; it's a step forward in command-l
 ## Sponsor
 
 [![Nightway](https://cdn.bgr.wtf/uploads/2.png)](https://nightwayhosting.com/)
+TailTerm for 15% off any purchase
