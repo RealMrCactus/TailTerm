@@ -6,6 +6,7 @@ use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::{io::Read, thread, sync::mpsc};
 use std::io::Write;
 use std::sync::{Arc, Mutex};
+use std::os::fd::IntoRawFd;
 
 fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc::Sender<String>) {
     println!("setup_pty_output_to_textview: Setting up PTY output thread...");
