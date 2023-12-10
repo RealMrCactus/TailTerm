@@ -4,6 +4,7 @@ extern crate vte;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow};
 use vte::Terminal;
+use gtk::InputPurpose::Terminal;
 
 fn main() {
     // Initialize GTK application
