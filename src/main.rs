@@ -47,16 +47,12 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc:
 
 
 fn main() {
-    println!("main: Starting application...");
-
     // Initialize GTK application
     let application = Application::new(Some("com.example.tailterm"), Default::default());
     let (tx, rx) = mpsc::channel();
     let rx = Arc::new(Mutex::new(rx)); // Wrap the receiver in an Arc<Mutex<_>>
 
     application.connect_activate(move |app| {
-        println!("main: Inside connect_activate...");
-
         let window = ApplicationWindow::new(app);
         window.set_title("TailTerm");
         window.set_default_size(850, 450);
@@ -67,42 +63,36 @@ fn main() {
 
         window.add(&text_view);
         window.show_all();
-
+        
         let tx_clone = tx.clone(); // Clone the sender
 
-        println!("main: Attempting to open PTY...");
+        println!("Attempting to open PTY...");
         let pty_result = openpty(None, None);
         if let Ok(pty) = pty_result {
-            println!("main: PTY opened successfully. Master FD: {:?}", pty.master);
+            println!("PTY opened successfully. Master FD: {:?}", pty.master);
+            println!("Slave device path: /dev/pts/{}", pty.slave.as_raw_fd());
 
-            let master_fd_clone = pty.master.try_clone().expect("Failed to clone PTY master FD");
-            setup_pty_output_to_textview(master_fd_clone.as_raw_fd(), text_view.clone(), tx_clone);
+            // Here you can write something to the slave to test
+            let mut slave_file = unsafe { std::fs::File::from_raw_fd(pty.slave.as_raw_fd()) };
+            writeln!(slave_file, "Hello from the slave end!").unwrap();
 
-            println!("main: PTY setup complete, setting up idle callback...");
+            // Setup the PTY output to be displayed in the TextView
+            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view.clone(), tx_clone);
 
             let rx_clone = Arc::clone(&rx); // Clone the Arc<Mutex<Receiver<_>>>
             let text_buffer = text_view.buffer().expect("Failed to get text buffer");
 
             source::idle_add_local(move || {
-                println!("Idle callback: Attempting to lock receiver mutex...");
                 if let Ok(output) = rx_clone.lock().expect("Failed to lock rx").try_recv() {
-                    println!("Idle callback: Received data, inserting into buffer...");
                     text_buffer.insert(&mut text_buffer.end_iter(), &output);
-                    println!("Idle callback: Data inserted into buffer.");
-                } else {
-                    println!("Idle callback: No data received this time.");
                 }
                 true.into()
             });
-
-            println!("main: GTK idle callback setup complete.");
         } else {
-            eprintln!("main: Failed to open PTY: {:?}", pty_result.err());
+            eprintln!("Failed to open PTY: {:?}", pty_result.err());
         }
     });
 
-    println!("main: Running application...");
     application.run();
-    println!("main: Application exited.");
 }
 
