@@ -3,7 +3,7 @@ use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
 use glib::source;
 use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
-use std::{io::Read, thread, sync::mpsc};
+use std::{io::Read, thread, sync::mpsc, io::Write};
 use std::sync::{Arc, Mutex};
 
 fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc::Sender<String>) {
