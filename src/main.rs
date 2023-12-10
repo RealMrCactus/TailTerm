@@ -56,17 +56,15 @@ fn main() {
             eprintln!("Failed to open PTY");
         }
 
-        {
-            // Move rx into the closure directly
-            source::idle_add_local(move || {
-                if let Ok(output) = rx.try_recv() {
-                    if let Some(buffer) = text_view.buffer() {
-                        buffer.insert(&mut buffer.end_iter(), &output);
-                    }
+        let rx = rx; // Move rx into the closure
+        source::idle_add_local(move || {
+            if let Ok(output) = rx.try_recv() {
+                if let Some(buffer) = text_view.buffer() {
+                    buffer.insert(&mut buffer.end_iter(), &output);
                 }
-                true.into()
-            });
-        }
+            }
+            glib::Continue(true)
+        });
     });
 
     application.run();
