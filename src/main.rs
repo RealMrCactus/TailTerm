@@ -45,12 +45,17 @@ fn main() {
 
         window.add(&text_view);
         window.show_all();
+        
+        let tx_clone = tx.clone(); // Clone the sender
 
         // Open PTY and setup output to textview
         if let Ok(pty) = openpty(None, None) {
-            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view.clone(), tx);
+            // Call the function here
+            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view.clone(), tx_clone);
+        } else {
+            eprintln!("Failed to open PTY");
         }
-
+        
         source::idle_add_local(move || {
             if let Ok(output) = rx.try_recv() {
                 if let Some(buffer) = text_view.buffer() {
