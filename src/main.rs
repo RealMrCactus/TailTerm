@@ -37,7 +37,7 @@ impl TerminalWindow {
 }
 
 fn spawn_shell() -> nix::Result<()> {
-    let pty_master = openpty(None, None)?;
+    let OpenptyResult { master: pty_master, slave: _ } = openpty(None, None)?;
     grantpt(&pty_master)?;
     unlockpt(&pty_master)?;
 
