@@ -1,7 +1,7 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, TextView, TextBuffer};
+use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
 use glib::source::{self, Continue};
-use nix::pty::{openpty};
+use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::{io::Read, thread, sync::mpsc};
 
