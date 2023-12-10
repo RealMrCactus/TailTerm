@@ -57,7 +57,7 @@ fn main() {
                     buffer.insert(&mut buffer.get_end_iter(), &output);
                 }
             }
-            true // Return true to keep the callback alive.
+            true.into() // Return true to keep the callback alive.
         });
     });
 
