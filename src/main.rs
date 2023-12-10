@@ -9,25 +9,36 @@ use std::sync::{Arc, Mutex};
 fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc::Sender<String>) {
     thread::spawn(move || {
         // SAFETY: We're assuming here that we're the only ones who have access to this FD.
-        let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
-        let mut buffer = [0; 1024];
+        let master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+        println!("Setup PTY: File descriptor is {:?}", master_file);
 
+        let mut buffer = [0; 1024];
         loop {
             match master_file.read(&mut buffer) {
                 Ok(size) => {
+                    println!("Read {} bytes from PTY", size);
                     if size > 0 {
                         let output = String::from_utf8_lossy(&buffer[..size]).to_string();
-                        tx.send(output).expect("Failed to send output to main thread");
+                        if tx.send(output).is_err() {
+                            println!("Failed to send output to main thread");
+                            break;
+                        }
                     }
                 }
                 Err(e) => {
-                    eprintln!("Error reading from PTY: {}", e);
+                    // This will print the error whenever the read operation fails
+                    println!("Error reading from PTY: {:?}", e);
                     break;
                 }
             }
         }
+
+        // Drop the master_file explicitly
+        drop(master_file);
+        println!("PTY master file descriptor closed.");
     });
 }
+
 
 fn main() {
     // Initialize GTK application
