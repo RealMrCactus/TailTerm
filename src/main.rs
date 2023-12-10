@@ -54,7 +54,7 @@ fn main() {
         source::idle_add_local(move || {
             if let Ok(output) = rx.try_recv() {
                 if let Some(buffer) = text_view.buffer() {
-                    buffer.insert(&mut buffer.get_end_iter(), &output);
+                    buffer.insert(&mut buffer.end_iter(), &output);
                 }
             }
             true.into() // Return true to keep the callback alive.
