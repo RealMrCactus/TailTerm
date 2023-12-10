@@ -40,8 +40,9 @@ impl TerminalWindow {
     }
 
     fn write_to_terminal(&mut self, data: &[u8]) {
-        let qstring = QString::from_utf8(data.to_vec());
-        self.terminal_text.append(&qstring);
+        // Assuming there's a correct method to convert from &[u8] to QString.
+        let qstring = correct_method_to_convert_utf8_to_qstring(data);
+        self.terminal_text.append(&qstring); // Assuming `append` is the correct method.
         self.terminal_text_changed();
     }
 }
@@ -87,7 +88,6 @@ fn spawn_shell(terminal_window: Arc<Mutex<TerminalWindow>>) -> nix::Result<()> {
 
 fn main() {
     let terminal_window = Arc::new(Mutex::new(TerminalWindow::default()));
-
     match spawn_shell(terminal_window.clone()) {
         Ok(_) => {
             // Note: In a real application, you'll need to manage both the Qt event loop and the PTY I/O.
