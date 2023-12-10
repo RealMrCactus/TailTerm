@@ -1,5 +1,5 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, TextView, glib};
+use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
 use glib::source;
 use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
