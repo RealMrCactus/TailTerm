@@ -48,5 +48,6 @@ fn main() {
     });
 
     // Run the application
+    opty();
     application.run();
 }
