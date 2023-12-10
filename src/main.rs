@@ -38,8 +38,8 @@ impl TerminalWindow {
 
 fn spawn_shell() -> nix::Result<()> {
     let pty_master = openpty(None, None)?;
-    grantpt(&pty_master.master)?;
-    unlockpt(&pty_master.master)?;
+    grantpt(&pty_master.master.as_raw_fd())?;
+    unlockpt(&pty_master.master.as_raw_fd())?;
 
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
