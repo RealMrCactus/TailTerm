@@ -41,18 +41,11 @@ impl TerminalWindow {
 fn spawn_shell() -> nix::Result<()> {
     let OpenptyResult { master, slave } = openpty(None, None)?;
     let master_fd = master.as_raw_fd();
-    // Assuming `master_fd` is a variable of type `PtyMaster`
-    match grantpt(&master_fd) {
-        Ok(()) => println!("grantpt succeeded"),
-        Err(err) => eprintln!("grantpt failed: {}", err),
-    }
 
-    match unlockpt(&master_fd) {
-        Ok(()) => println!("unlockpt succeeded"),
-        Err(err) => eprintln!("unlockpt failed: {}", err),
-    }
+    // Use nix's grantpt and unlockpt functions
+    grantpt(&master_fd)?;
+    unlockpt(&master_fd)?;
 
-    
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
             // Parent process logic here
@@ -60,15 +53,15 @@ fn spawn_shell() -> nix::Result<()> {
         ForkResult::Child => {
             setsid()?;
             let slave_fd = slave.as_raw_fd();
-    
+
             // Attach the slave end of the PTY to the standard streams
             dup2(slave_fd, std::io::stdin().as_raw_fd())?;
             dup2(slave_fd, std::io::stdout().as_raw_fd())?;
             dup2(slave_fd, std::io::stderr().as_raw_fd())?;
-    
+
             // Now close the original slave_fd
             close(slave_fd)?;
-    
+
             // Prepare command and arguments
             let shell = CString::new("/bin/sh").unwrap();
             let args = [CStr::from_bytes_with_nul(b"/bin/sh\0").unwrap()];
