@@ -24,5 +24,5 @@ fn main() {
     });
 
     // Run the application
-    application.run(&[]);
+    application.run();
 }
