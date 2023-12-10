@@ -65,6 +65,8 @@ fn main() {
             }
             true.into()
         });
+
+        std::mem::drop(rx);
     });
 
     application.run();
