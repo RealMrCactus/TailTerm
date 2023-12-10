@@ -1,58 +1,60 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, TextView};
-use nix::pty::{openpty, Winsize};
-use std::os::unix::io::AsRawFd;
-use std::thread;
+use gtk::{Application, ApplicationWindow, TextView, TextBuffer};
+use nix::pty::{forkpty, openpty, Winsize};
+use std::os::unix::io::{AsRawFd, RawFd};
+use std::{io::Read, thread};
+use std::os::unix::io::FromRawFd;
 
-fn opty() {
-    // Attempt to open a new PTY
-    let pty_result = openpty(None, None);
+fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView) {
+    thread::spawn(move || {
+        let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+        let mut buffer = [0; 1024];
 
-    match pty_result {
-        Ok(pty) => {
-            println!("PTY opened successfully.");
-            println!("Master FD: {}", pty.master.as_raw_fd());
-            println!("Slave FD: {}", pty.slave.as_raw_fd());
+        loop {
+            match master_file.read(&mut buffer) {
+                Ok(size) => {
+                    if size > 0 {
+                        let output = String::from_utf8_lossy(&buffer[..size]);
 
-            // The PTY handling would go here.
-            // You might read from the master FD and update the TextView in your GTK app,
-            // or take input from the TextView and write it to the master FD.
+                        // Update the TextView in the main GTK thread
+                        glib::idle_add_local(move || {
+                            if let Some(buffer) = text_view.get_buffer() {
+                                buffer.insert(&mut buffer.get_end_iter(), &output);
+                            }
+                            glib::Continue(false)
+                        });
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error reading from PTY: {}", e);
+                    break;
+                }
+            }
         }
-        Err(e) => {
-            eprintln!("Failed to open PTY: {}", e);
-        }
-    }
+    });
 }
 
 fn main() {
     // Initialize GTK application
-    if let Ok(application) = Application::new(Some("com.realmrcactus.tailterm"), Default::default()) {
-        application.connect_activate(|app| {
-            // Create a new window
-            let window = ApplicationWindow::new(app);
-            window.set_title("TailTerm");
-            window.set_default_size(850, 450);
+    let application = Application::new(Some("com.realmrcactus.tailterm"), Default::default());
 
-            // Create a text view (a multi-line text box)
-            let text_view = TextView::new();
-            text_view.set_editable(true); // Make the text view editable
-            text_view.set_wrap_mode(gtk::WrapMode::Word); // Set wrap mode
+    application.connect_activate(|app| {
+        let window = ApplicationWindow::new(app);
+        window.set_title("TailTerm");
+        window.set_default_size(850, 450);
 
-            // Add the text view to the window
-            window.add(&text_view);
+        let text_view = TextView::new();
+        text_view.set_editable(false);
+        text_view.set_wrap_mode(gtk::WrapMode::Word);
 
-            // Show all window components
-            window.show_all();
-        });
+        window.add(&text_view);
+        window.show_all();
 
-        // Start the PTY handling in a separate thread
-        thread::spawn(move || {
-            opty();
-        });
+        // Open PTY and setup output to textview
+        if let Ok(pty) = openpty(None, None) {
+            setup_pty_output_to_textview(pty.master.as_raw_fd(), text_view);
+        }
+    });
 
-        // Run the application
-        application.run();
-    } else {
-        eprintln!("Failed to initialize GTK application");
-    }
+    application.run();
 }
