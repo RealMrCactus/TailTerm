@@ -56,16 +56,17 @@ fn main() {
             eprintln!("Failed to open PTY");
         }
 
-        
-        let rx1 = &rx; // This shadows the outer rx, effectively "moving" it into this scope.
-        source::idle_add_local(move || {
-            if let Ok(output) = rx1.try_recv() {
-                if let Some(buffer) = text_view.buffer() {
-                    buffer.insert(&mut buffer.end_iter(), &output);
+        {
+            // Move rx into the closure directly
+            source::idle_add_local(move || {
+                if let Ok(output) = rx.try_recv() {
+                    if let Some(buffer) = text_view.buffer() {
+                        buffer.insert(&mut buffer.end_iter(), &output);
+                    }
                 }
-            }
-            true.into() // Or just true if Continue is not required
-        });
+                true.into()
+            });
+        }
     });
 
     application.run();
