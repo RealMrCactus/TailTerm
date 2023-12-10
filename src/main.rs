@@ -1,6 +1,7 @@
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
 use glib::source;
+use glib::ControlFlow::Continue;
 use nix::pty::{forkpty, openpty, Winsize};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::{io::Read, thread};
@@ -26,7 +27,7 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView) {
                                 if let Some(buffer) = text_view.get_buffer() {
                                     buffer.insert(&mut buffer.get_end_iter(), &output);
                                 }
-                                glib::source::Continue(false)
+                                Continue(false)
                             });
                             
                         });
