@@ -33,6 +33,7 @@ fn main() {
     // Initialize GTK application
     let application = Application::new(Some("com.example.tailterm"), Default::default());
     let (tx, rx) = mpsc::channel();
+    let rx = Arc::new(Mutex::new(rx)); // Wrap the receiver in an Arc<Mutex<_>>
 
     application.connect_activate(move |app| {
         let window = ApplicationWindow::new(app);
@@ -56,16 +57,16 @@ fn main() {
             eprintln!("Failed to open PTY");
         }
 
+        let rx_clone = Arc::clone(&rx); // Clone the Arc<Mutex<Receiver<_>>>
+
         source::idle_add_local(move || {
             if let Ok(output) = rx.try_recv() { // use rx directly here
-                if let Some(buffer) = text_view.buffer() {
+                if let Ok(output) = rx_clone.lock().unwrap().try_recv() { // Lock the Mutex and try to receive
                     buffer.insert(&mut buffer.end_iter(), &output);
                 }
             }
             true.into()
         });
-
-        std::mem::drop(rx);
     });
 
     application.run();
