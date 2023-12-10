@@ -1,6 +1,6 @@
 use qmetaobject::*;
 use nix::fcntl::OFlag;
-use nix::pty::{openpty, grantpt, unlockpt, Winsize};
+use nix::pty::{openpty, grantpt, unlockpt, Winsize, PtyMaster};
 use nix::sys::termios;
 use nix::unistd::{fork, ForkResult, setsid, dup2, execvp, close};
 use std::ffi::{CString, CStr};
@@ -38,8 +38,8 @@ impl TerminalWindow {
 
 fn spawn_shell() -> nix::Result<()> {
     let pty_master = openpty(None, None)?;
-    grantpt(&pty_master.slave)?;
-    unlockpt(&pty_master.slave)?;
+    grantpt(&pty_master.master)?;
+    unlockpt(&pty_master.master)?;
 
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
