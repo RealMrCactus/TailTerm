@@ -7,6 +7,9 @@ use std::ffi::{CString, CStr};
 use std::os::unix::io::{RawFd, AsRawFd};
 use libc::{grantpt as other_grantpt, unlockpt as other_unlockpt};
 use std::os::fd::IntoRawFd;
+use std::thread;
+use std::io::Read;
+
 
 #[derive(QObject, Default)]
 struct TerminalWindow {
@@ -39,16 +42,31 @@ impl TerminalWindow {
     
 }
 
-fn spawn_shell() -> nix::Result<()> {
-    let openpty_result = openpty(None, None)?;
+fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
+    let OpenptyResult { master, slave } = openpty(None, None)?;
 
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
-            // Parent process logic here
+            // Spawn a new thread to handle the I/O
+            thread::spawn(move || {
+                let mut buffer = [0; 1024];
+                loop {
+                    match master.read(&mut buffer) {
+                        Ok(n) => {
+                            // Write the data to the terminal window
+                            terminal_window.write_to_terminal(&buffer[..n]);
+                        }
+                        Err(e) => {
+                            eprintln!("Error reading from master PTY: {}", e);
+                            break;
+                        }
+                    }
+                }
+            });
         }
         ForkResult::Child => {
             setsid()?;
-            let slave_fd = openpty_result.slave.into_raw_fd();
+            let slave_fd = slave.into_raw_fd();
 
             // Attach the slave end of the PTY to the standard streams
             dup2(slave_fd, std::io::stdin().as_raw_fd())?;
