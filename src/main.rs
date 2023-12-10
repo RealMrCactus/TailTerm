@@ -9,11 +9,15 @@ use libc::{grantpt as other_grantpt, unlockpt as other_unlockpt};
 use std::os::fd::IntoRawFd;
 use std::thread;
 use std::io::Read;
+use std::fs::File;
 
 
 #[derive(QObject, Default)]
 struct TerminalWindow {
     base: qt_base_class!(trait QObject),
+    // You might need a property here to hold the terminal's text
+    terminal_text: qt_property!(QString; NOTIFY terminal_text_changed),
+    terminal_text_changed: qt_signal!(),
 }
 
 impl TerminalWindow {
@@ -28,18 +32,19 @@ impl TerminalWindow {
                 width: 640
                 height: 480
                 title: qsTr("Rust Terminal Emulator")
-    
-                TextArea {
-                    anchors.fill: parent
-                    font.family: "monospace"
-                    // ... additional properties ...
-                }
-            }
-        "#.into());
-    
-        engine.exec();
+        "#);
     }
-    
+
+    fn write_to_terminal(&mut self, data: &[u8]) {
+        // Convert the data to a QString
+        let qstring = QString::from_std_str(std::str::from_utf8(data).unwrap_or(""));
+        
+        // Append the data to the terminal's text
+        self.terminal_text.append_q_string(&qstring);
+        
+        // Emit the terminal_text_changed signal
+        self.terminal_text_changed();
+    }
 }
 
 fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
