@@ -7,8 +7,8 @@ use std::ffi::{CString, CStr};
 use std::os::unix::io::{RawFd, AsRawFd};
 use libc::{grantpt as other_grantpt, unlockpt as other_unlockpt};
 use std::os::fd::IntoRawFd;
+use std::os::fd::RawFd;
 use std::thread;
-use std::io::Read;
 use std::fs::File;
 
 
@@ -31,7 +31,7 @@ impl TerminalWindow {
                 visible: true
                 width: 640
                 height: 480
-                title: qsTr("Rust Terminal Emulator")
+                title: qsTr("TailTerm")
         "#);
     }
 
