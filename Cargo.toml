@@ -9,4 +9,4 @@ edition = "2021"
 qmetaobject = "0.2.10"
 tokio = "1.35.0"
 vte = "0.13.0"
-nix = "0.27.1"
+nix = { version = "0.27.1", features = ["terminal"] }

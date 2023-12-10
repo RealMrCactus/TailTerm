@@ -9,17 +9,17 @@ struct TerminalWindow {
 
 impl TerminalWindow {
     fn show(&self) {
-        let engine = QmlEngine::new();
+        let mut engine = QmlEngine::new(); // Declare `engine` as mutable
         engine.load_data(r#"
             import QtQuick 2.0
             import QtQuick.Controls 2.15
-
+    
             ApplicationWindow {
                 visible: true
                 width: 640
                 height: 480
                 title: qsTr("Rust Terminal Emulator")
-
+    
                 TextArea {
                     anchors.fill: parent
                     font.family: "monospace"
@@ -27,9 +27,10 @@ impl TerminalWindow {
                 }
             }
         "#.into());
-
+    
         engine.exec();
     }
+    
 }
 
 fn spawn_shell() {
