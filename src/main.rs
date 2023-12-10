@@ -63,7 +63,7 @@ fn main() {
                     buffer.insert(&mut buffer.end_iter(), &output);
                 }
             }
-            glib::Continue(true)
+            true.into()
         });
     });
 
