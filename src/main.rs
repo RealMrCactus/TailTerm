@@ -23,7 +23,7 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: gtk::TextView) {
                             // Use of get_buffer method after ensuring the TextView's trait is in scope
                             let buffer = text_view.get_buffer().expect("Cannot get text buffer");
                             buffer.insert(&mut buffer.get_end_iter(), &output);
-                            Continue(false)
+                            gtk::glib::ControlFlow::Continue(false)
                         });
                     }
                 }
