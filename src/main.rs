@@ -64,7 +64,7 @@ fn main() {
                         buffer.insert(&mut buffer.end_iter(), &output);
                     }
                 }
-                Continue(true) // Or just true if Continue is not required
+                true.into() // Or just true if Continue is not required
             });
         }
     });
