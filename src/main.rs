@@ -1,6 +1,6 @@
 use qmetaobject::*;
 use nix::fcntl::OFlag;
-use nix::pty::{openpty, grantpt, unlockpt, Winsize, PtyMaster};
+use nix::pty::{openpty, OpenptyResult, grantpt, unlockpt, Winsize, PtyMaster};
 use nix::sys::termios;
 use nix::unistd::{fork, ForkResult, setsid, dup2, execvp, close};
 use std::ffi::{CString, CStr};
