@@ -62,7 +62,7 @@ fn main() {
                     buffer.insert(&mut buffer.end_iter(), &output);
                 }
             }
-            glib::ControlFlow::Continue(true)
+            true.into()
         });
 
         std::mem::drop(rx);
