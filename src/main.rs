@@ -41,5 +41,5 @@ fn main() {
         window.show_all();
     });
 
-    application.run(&[]);
+    application.run();
 }
