@@ -56,7 +56,7 @@ fn main() {
             eprintln!("Failed to open PTY");
         }
 
-        let rx = rx; // Move rx into the closure
+        let rx = &rx; // Move rx into the closure
         source::idle_add_local(move || {
             if let Ok(output) = rx.try_recv() {
                 if let Some(buffer) = text_view.buffer() {
