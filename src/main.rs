@@ -45,20 +45,22 @@ impl TerminalWindow {
 fn spawn_shell(terminal_window: TerminalWindow) -> nix::Result<()> {
     let OpenptyResult { master, slave } = openpty(None, None)?;
 
+    // Convert the OwnedFd into a File
+    let master_file = unsafe { File::from_raw_fd(master.into_raw_fd()) };
+
     match unsafe { fork()? } {
         ForkResult::Parent { .. } => {
             // Spawn a new thread to handle the I/O
             thread::spawn(move || {
                 let mut buffer = [0; 1024];
                 loop {
-                    match master.read(&mut buffer) {
+                    match master_file.read(&mut buffer) {
                         Ok(n) => {
                             // Write the data to the terminal window
                             terminal_window.write_to_terminal(&buffer[..n]);
                         }
                         Err(e) => {
                             eprintln!("Error reading from master PTY: {}", e);
-                            break;
                         }
                     }
                 }
