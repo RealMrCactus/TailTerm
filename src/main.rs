@@ -1,45 +1,35 @@
-extern crate gtk;
-extern crate vte;
+use qt_core::{QString, Slot};
+use qt_widgets::{QApplication, QLineEdit, QPushButton, QVBoxLayout, QWidget};
+use std::process::Command;
+use std::os::unix::process::CommandExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::process::Command;
 
-use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow};
-use vte::Terminal;
-use gio::prelude::*;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let shell = "/bin/bash"; // This should be replaced with code that finds the user's shell
 
+    let mut child = Command::new(shell)
+        .spawn()
+        .expect("failed to spawn shell");
 
-fn main() {
-    // Initialize GTK application
-    let application = Application::new(Some("com.realmrcactus.tailterm"), Default::default());
+    QApplication::init(|_| unsafe {
+        let widget = QWidget::new_0a();
+        let layout = QVBoxLayout::new_1a(&widget);
+        let line_edit = QLineEdit::new();
+        let button = QPushButton::from_q_string(&QString::from_std_str("Send"));
 
-    application.connect_activate(|app| {
-        // Create a window
-        let window = ApplicationWindow::new(app);
-        window.set_title("Rust Terminal Emulator");
-        window.set_default_size(800, 600);
+        layout.add_widget(&line_edit);
+        layout.add_widget(&button);
 
-        // Create a VTE Terminal
-        let terminal = Terminal::new();
-
-        // Optional: Set up callback for child-exited signal
-        terminal.connect_child_exited(move |_| {
-            std::process::exit(0);
+        let slot = Slot::new(move || {
+            let command = line_edit.text().to_std_string() + "\n";
+            child.stdin.as_mut().unwrap().write_all(command.as_bytes()).await.unwrap();
         });
 
-        // Spawn a new shell process
-        terminal.spawn_async(
-            &vte::PtyFlags::default(), // Default PTY flags
-            None,                      // Working directory (None uses the current directory)
-            &[],                       // Command to run (empty array runs the default shell)
-            None,                      // Environment variables
-            &[],                       // Spawn flags
-            0,                         // Timeout
-            None::<&gio::Cancellable>, // Cancellable object
-            None,                      // Callback (None means no callback)
-        );
+        button.released().connect(&slot);
 
-        window.add(&terminal);
-        window.show_all();
-    });
-
-    application.run();
+        widget.show();
+        QApplication::exec()
+    })
 }
