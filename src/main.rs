@@ -1,5 +1,7 @@
+extern crate gtk;
+
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
+use gtk::{Application, ApplicationWindow, TextView};
 use glib::source;
 use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
@@ -49,60 +51,86 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc:
 
 
 fn main() {
-    // Open PTY and handle any errors that might occur
-    let pty = match openpty(None, None) {
-        Ok(pty) => pty,
-        Err(e) => {
-            eprintln!("Failed to open PTY: {:?}", e);
-            return;
-        }
-    };
+    let application = Application::new(Some("com.realmrcactus.TailTerm"), Default::default())
+        .expect("Initialization failed...");
 
-    // Extract master and slave file descriptors
-    let master_fd = pty.master.as_raw_fd();
-    let slave_fd = pty.slave.as_raw_fd();
+        application.connect_activate(|app| {
+            let window = ApplicationWindow::new(app);
+            window.set_title("PTY Terminal");
+            window.set_default_size(800, 600);
+    
+            let text_view = TextView::new();
+            text_view.set_editable(false);
+            window.add(&text_view);
+        
+            
+            window.show_all();
 
-    println!("Master FD: {}", master_fd);
-    println!("Slave FD: {}", slave_fd);
-
-    // Wrap the master file descriptor in a safe File handle
-    let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
-
-
-    // Write to the master end of the PTY
-    let write_result = writeln!(master_file, "Hello PTY");
-    match write_result {
-        Ok(_) => println!("Successfully wrote to PTY master"),
-        Err(e) => eprintln!("Failed to write to PTY master: {:?}", e),
-    }
-
-    // Read from the master end of the PTY
-    let mut buffer = [0; 1024];
-    loop {
-        match master_file.read(&mut buffer) {
-            Ok(0) => {
-                println!("Reached EOF on PTY master");
-                break;
-            }
-            Ok(size) => {
-                let output = String::from_utf8_lossy(&buffer[..size]);
-                println!("Read {} bytes from PTY master: {}", size, output);
-            }
+        // Open PTY and handle any errors that might occur
+        let pty = match openpty(None, None) {
+            Ok(pty) => pty,
             Err(e) => {
-                eprintln!("Error reading from PTY master: {:?}", e);
-                break;
+                eprintln!("Failed to open PTY: {:?}", e);
+                return;
+            }
+        };
+
+        // Extract master and slave file descriptors
+        let master_fd = pty.master.as_raw_fd();
+        let slave_fd = pty.slave.as_raw_fd();
+
+        println!("Master FD: {}", master_fd);
+        println!("Slave FD: {}", slave_fd);
+
+        // Wrap the master file descriptor in a safe File handle
+        let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+
+
+        // Write to the master end of the PTY
+        let write_result = writeln!(master_file, "Hello PTY");
+        match write_result {
+            Ok(_) => println!("Successfully wrote to PTY master"),
+            Err(e) => eprintln!("Failed to write to PTY master: {:?}", e),
+        }
+
+        // Read from the master end of the PTY
+        let mut buffer = [0; 1024];
+        loop {
+            match master_file.read(&mut buffer) {
+                Ok(0) => {
+                    println!("Reached EOF on PTY master");
+                    break;
+                }
+                Ok(size) => {
+                    let output = String::from_utf8_lossy(&buffer[..size]);
+                    println!("Read {} bytes from PTY master: {}", size, output);
+                }
+                Err(e) => {
+                    eprintln!("Error reading from PTY master: {:?}", e);
+                    break;
+                }
             }
         }
-    }
 
-    // Wrap the slave file descriptor in a safe File handle
-    // Note: This is just an example. Normally, you should not open slave_fd here since it is used by the child process.
-    let mut slave_file = unsafe { std::fs::File::from_raw_fd(slave_fd) };
+        // Wrap the slave file descriptor in a safe File handle
+        // Note: This is just an example. Normally, you should not open slave_fd here since it is used by the child process.
+        let mut slave_file = unsafe { std::fs::File::from_raw_fd(slave_fd) };
 
-    // Write something to the slave end to simulate input (for testing purposes)
-    let write_result = writeln!(slave_file, "Input to slave");
-    match write_result {
-        Ok(_) => println!("Successfully wrote to PTY slave"),
-        Err(e) => eprintln!("Failed to write to PTY slave: {:?}", e),
-    }
+        // Write something to the slave end to simulate input (for testing purposes)
+        let write_result = writeln!(slave_file, "Input to slave");
+        match write_result {
+            Ok(_) => println!("Successfully wrote to PTY slave"),
+            Err(e) => eprintln!("Failed to write to PTY slave: {:?}", e),
+        }
+
+        let context = glib::MainContext::default();
+        context.acquire().unwrap();
+        glib::source::idle_add_local(move || {
+            if let Ok(output) = rx.try_recv() {
+                text_view.get_buffer().unwrap().insert_at_cursor(&output);
+            }
+            glib::Continue(true)
+        });
+    });
+    application.run();
 }

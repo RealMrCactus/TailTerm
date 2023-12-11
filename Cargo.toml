@@ -11,3 +11,4 @@ tokio = "1.35.0"
 nix = { version = "0.27.1", features = ["process", "term", "fs"] }
 libc = "0.2.150"
 gtk = "0.18.1"
+glib = "0.18.4"
