@@ -3,8 +3,8 @@ use gtk::{Application, ApplicationWindow, TextView, TextBuffer, glib};
 use glib::source;
 use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
-use std::{io::Read, thread, sync::mpsc};
-use std::io::Write;
+use std::{thread, sync::mpsc};
+use std::io::{Write, Read};
 use std::sync::{Arc, Mutex};
 use std::os::fd::IntoRawFd;
 
@@ -49,63 +49,56 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc:
 
 
 fn main() {
-    let application = Application::new(Some("com.example.tailterm"), Default::default());
-
-    application.connect_activate(|app| {
-        let window = ApplicationWindow::new(app);
-        window.set_title("TailTerm");
-        window.set_default_size(850, 450);
-
-        let text_view = TextView::new();
-        text_view.set_editable(false);
-        text_view.set_wrap_mode(gtk::WrapMode::Word);
-
-        window.add(&text_view);
-        window.show_all();
-
-        // Open PTY and setup output to textview
-        if let Ok(pty) = openpty(None, None) {
-            let master_fd = pty.master.into_raw_fd();
-            let master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
-
-            // Create an Arc and Mutex to share the master file between threads
-            let master_file = Arc::new(Mutex::new(master_file));
-
-            // Clone the Arc to share with the thread
-            let thread_master_file = Arc::clone(&master_file);
-            thread::spawn(move || {
-                let mut local_master_file = thread_master_file.lock().unwrap();
-                let mut buffer = [0; 1024];
-                loop {
-                    match local_master_file.read(&mut buffer) {
-                        Ok(size) if size > 0 => {
-                            let output = String::from_utf8_lossy(&buffer[..size]).to_string();
-                            println!("Read from PTY: {}", output);
-                        }
-                        Ok(_) => {}
-                        Err(e) => {
-                            eprintln!("Error reading from PTY: {}", e);
-                            break;
-                        }
-                    }
-                }
-            });
-
-            // Example of writing to the PTY master end in the main thread
-            // Lock the mutex outside of the if block to extend its lifetime
-            let mut master_file_guard = master_file.lock().unwrap();
-
-            // Then you can use the locked mutex within the if block or elsewhere as needed
-            if let Ok(_) = writeln!(master_file_guard, "Hello from the main thread!") {
-                // Handle successful write
-            } else {
-                // Handle error
-            }
-            // The lock will be held until `master_file_guard` goes out of scope
-        } else {
-            eprintln!("Failed to open PTY");
+    // Open PTY and handle any errors that might occur
+    let pty = match openpty(None, None) {
+        Ok(pty) => pty,
+        Err(e) => {
+            eprintln!("Failed to open PTY: {:?}", e);
+            return;
         }
-    });
+    };
 
-    application.run();
+    // Extract master and slave file descriptors
+    let master_fd = pty.master;
+    let slave_fd = pty.slave;
+
+    // Wrap the master file descriptor in a safe File handle
+    let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+
+    // Write to the master end of the PTY
+    let write_result = writeln!(master_file, "Hello PTY");
+    match write_result {
+        Ok(_) => println!("Successfully wrote to PTY master"),
+        Err(e) => eprintln!("Failed to write to PTY master: {:?}", e),
+    }
+
+    // Read from the master end of the PTY
+    let mut buffer = [0; 1024];
+    loop {
+        match master_file.read(&mut buffer) {
+            Ok(0) => {
+                println!("Reached EOF on PTY master");
+                break;
+            }
+            Ok(size) => {
+                let output = String::from_utf8_lossy(&buffer[..size]);
+                println!("Read {} bytes from PTY master: {}", size, output);
+            }
+            Err(e) => {
+                eprintln!("Error reading from PTY master: {:?}", e);
+                break;
+            }
+        }
+    }
+
+    // Wrap the slave file descriptor in a safe File handle
+    // Note: This is just an example. Normally, you should not open slave_fd here since it is used by the child process.
+    let mut slave_file = unsafe { std::fs::File::from_raw_fd(slave_fd) };
+
+    // Write something to the slave end to simulate input (for testing purposes)
+    let write_result = writeln!(slave_file, "Input to slave");
+    match write_result {
+        Ok(_) => println!("Successfully wrote to PTY slave"),
+        Err(e) => eprintln!("Failed to write to PTY slave: {:?}", e),
+    }
 }
