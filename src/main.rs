@@ -59,11 +59,12 @@ fn main() {
     };
 
     // Extract master and slave file descriptors
-    let master_fd = pty.master;
-    let slave_fd = pty.slave;
+    let master_fd = pty.master.as_raw_fd();
+    let slave_fd = pty.slave.as_raw_fd();
 
     // Wrap the master file descriptor in a safe File handle
     let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
+
 
     // Write to the master end of the PTY
     let write_result = writeln!(master_file, "Hello PTY");
