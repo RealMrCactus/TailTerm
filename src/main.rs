@@ -128,6 +128,7 @@ fn main() {
         let context = glib::MainContext::default();
         context.acquire().unwrap();
         idle_add(move || {
+            let rx = rx.clone(); 
             if let Ok(output) = rx.try_recv() {
                 text_view.get_buffer().unwrap().insert_at_cursor(&output);
             }
