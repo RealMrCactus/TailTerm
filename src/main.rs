@@ -3,6 +3,7 @@ extern crate gtk;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, TextView};
 use glib::source;
+use glib::idle_add;
 use glib::ControlFlow::Continue;
 use nix::pty::openpty;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
