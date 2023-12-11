@@ -92,9 +92,16 @@ fn main() {
             });
 
             // Example of writing to the PTY master end in the main thread
-            if let Ok(mut master_file) = master_file.lock() {
-                writeln!(master_file, "Hello from the main thread!").unwrap();
+            // Lock the mutex outside of the if block to extend its lifetime
+            let mut master_file_guard = master_file.lock().unwrap();
+
+            // Then you can use the locked mutex within the if block or elsewhere as needed
+            if let Ok(_) = writeln!(master_file_guard, "Hello from the main thread!") {
+                // Handle successful write
+            } else {
+                // Handle error
             }
+            // The lock will be held until `master_file_guard` goes out of scope
         } else {
             eprintln!("Failed to open PTY");
         }
@@ -102,4 +109,3 @@ fn main() {
 
     application.run();
 }
-
