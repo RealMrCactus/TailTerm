@@ -62,6 +62,9 @@ fn main() {
     let master_fd = pty.master.as_raw_fd();
     let slave_fd = pty.slave.as_raw_fd();
 
+    println!("Master FD: {}", master_fd);
+    println!("Slave FD: {}", slave_fd);
+
     // Wrap the master file descriptor in a safe File handle
     let mut master_file = unsafe { std::fs::File::from_raw_fd(master_fd) };
 
