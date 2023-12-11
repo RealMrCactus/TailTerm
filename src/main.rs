@@ -130,7 +130,7 @@ fn main() {
             if let Ok(output) = rx.try_recv() {
                 text_view.get_buffer().unwrap().insert_at_cursor(&output);
             }
-            glib::Continue(true)
+            true.into();
         });
     });
     application.run();
