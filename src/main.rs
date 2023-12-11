@@ -127,7 +127,7 @@ fn main() {
 
         let context = glib::MainContext::default();
         context.acquire().unwrap();
-        gtk::idle_add(move || {
+        idle_add(move || {
             if let Ok(output) = rx.try_recv() {
                 text_view.get_buffer().unwrap().insert_at_cursor(&output);
             }
