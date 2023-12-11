@@ -53,7 +53,7 @@ fn setup_pty_output_to_textview(master_fd: RawFd, text_view: TextView, tx: mpsc:
 
 fn main() {
     let application = Application::new(Some("com.realmrcactus.TailTerm"), Default::default())
-        .expect("Initialization failed...");
+    .unwrap_or_else(|| panic!("Initialization failed..."));
 
         application.connect_activate(|app| {
             let window = ApplicationWindow::new(app);
@@ -126,11 +126,11 @@ fn main() {
 
         let context = glib::MainContext::default();
         context.acquire().unwrap();
-        glib::source::idle_add_local(move || {
+        gtk::idle_add(move || {
             if let Ok(output) = rx.try_recv() {
                 text_view.get_buffer().unwrap().insert_at_cursor(&output);
             }
-            true.into();
+            gtk::Continue(true)
         });
     });
     application.run();
