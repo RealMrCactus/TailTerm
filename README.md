@@ -18,6 +18,8 @@ TailTerm is not just another terminal emulator; it's a step forward in command-l
 
 [Basics of a TE](https://github.com/codecrafters-io/build-your-own-x/issues/85#issue-324138609)
 
+[Doctave](https://cli.doctave.com/)
+
 [![Discord](https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b52aa9e99b832574a53_full_logo_blurple_RGB.png)](https://discord.com/invite/C9vbcefvUA)
 
 ## Sponsor

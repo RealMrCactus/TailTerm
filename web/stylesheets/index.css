@@ -36,19 +36,28 @@ h1 {
 
 .fea {
     margin-top: -15px;
-    font-size: 20px;
+    font-size: 35px;
     font-weight: 600;
     position: relative;
     top: 20px;
+    margin-bottom: 50px;
+}
+
+#about .fea {
+    font-size: 35px;
+    font-weight: 600;
+    position: relative;
+    top: 51px;
 }
 
 p, li {
     display: inline-block;
     margin-right: 20px;
-    font-size: 15px;
+    font-size: 20px;
     font-weight: 400;
     position: relative;
     top: 20px;
+    font-family: inherit;
 }
 
 hr {
