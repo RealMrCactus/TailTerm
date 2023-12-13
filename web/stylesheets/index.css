@@ -1,6 +1,6 @@
 body {
     background-color: #232323;
-    font-family: "Open Sans", sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 14px;
     color: #fff;
 }
@@ -16,13 +16,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.logo {
-    float: left;
-    width: 35px;
-    height: 35px;
-    margin-left: 10px;
 }
 
 h1 {
@@ -60,4 +53,33 @@ p, li {
 
 hr {
     margin-top: 20px;
+}
+
+.logo {
+    float: left;
+    width: 35px;
+    height: 35px;
+    padding-left: 10px;
+    padding-top: 3.5px;
+}
+
+.tbar {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.tbar li {
+    float: left;
+}
+
+.tbar li a {
+    display: block;
+    color: #fff;
+    text-align: center;
+    padding-left: 35px;
+    text-decoration: none;
+    height: 50px;
+    line-height: 50%;
 }
